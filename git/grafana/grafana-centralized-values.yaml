@@ -1,0 +1,70 @@
+grafana:
+  deployment:
+    replicas: 1
+    updateStrategy: Recreate
+  config:
+    grafana_ini: |
+      [analytics]
+      check_for_updates = false
+      [grafana_net]
+      url = https://grafana.com
+      [log]
+      mode = console
+      [paths]
+      data = /var/lib/grafana/data
+      logs = /var/log/grafana
+      plugins = /var/lib/grafana/plugins
+      provisioning = /etc/grafana/provisioning
+    #! Refer to https://grafana.com/docs/grafana/latest/administration/provisioning/#example-data-source-config-file
+    datasource_yaml: |-
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: prometheus-server.tanzu-system-monitoring.svc.cluster.local
+          access: proxy
+          isDefault: true
+        - name: PrometheusServer1
+          type: prometheus
+          url: https://PROMETHEUS_FQDN_1
+          access: proxy
+          isDefault: false
+          jsonData:
+            tlsSkipVerify: true
+    #! Refer to https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+    dashboardProvider_yaml: |-
+      apiVersion: 1
+      providers:
+        - name: 'sidecarDashboardProvider'
+          orgId: 1
+          folder: ''
+          folderUid: ''
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 10
+          allowUiUpdates: false
+          options:
+            path: /tmp/dashboards
+            foldersFromFilesStructure: true
+  pvc:
+    accessMode: ReadWriteOnce
+    storage: 2Gi
+    storageClassName: STORAGE_CLASS
+  secret:
+    admin_password: "YWRtaW4="
+    admin_user: "YWRtaW4="
+    type: Opaque
+  service:
+    port: 80
+    targetPort: 3000
+    type: ClusterIP
+ingress:
+  enabled: true
+  prefix: /
+  servicePort: 80
+  virtual_host_fqdn: GRAFANA_FQDN
+  tlsCertificate:
+    tls.crt:
+    tls.key:
+    ca.crt:
+namespace: tanzu-system-dashboards
